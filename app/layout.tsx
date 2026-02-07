@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import { Share_Tech_Mono } from "next/font/google";
 import "./globals.css";
-import { AuthProvider } from "@/lib/context/auth-context";
-import { Navbar } from "@/components/navbar";
+import { AuthProvider } from "@/lib/contexts/AuthContext";
+import { Navbar } from "@/components/nav/navbar";
 import { Footer } from "@/components/footer";
+import QueryProvider from "@/providers/QueryProvider";
+import { Toaster } from "sonner";
 
 // OCR-A style font - easily swappable by changing this one import
 // Other options: Orbitron, VT323, Press_Start_2P, Major_Mono_Display
@@ -27,13 +29,16 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className={`${primaryFont.variable} font-primary antialiased`}>
-        <AuthProvider>
-          <div className="min-h-screen bg-background flex flex-col">
-            <Navbar />
-            <main className="flex-1 pt-16">{children}</main>
-            <Footer />
-          </div>
-        </AuthProvider>
+        <QueryProvider>
+          <AuthProvider>
+            <div className="min-h-screen bg-background flex flex-col">
+              <Navbar />
+              <main className="flex-1 pt-16">{children}</main>
+              <Footer />
+            </div>
+            <Toaster richColors position="top-right" />
+          </AuthProvider>
+        </QueryProvider>
       </body>
     </html>
   );

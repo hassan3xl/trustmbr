@@ -2,15 +2,16 @@
 
 import { useState, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
-import { Filter, Search, SlidersHorizontal } from "lucide-react";
+import { Filter, Search, Loader2 } from "lucide-react";
 
 import { BusinessCard } from "@/components/business-card";
 import { SearchBar } from "@/components/search-bar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { businesses, Business } from "@/lib/data";
+import { BusinessType, BusinessStatus } from "@/lib/types/business.types";
+import { useGetAllBusinesses } from "@/lib/hooks/business.hook";
 
-type FilterStatus = "all" | Business["verificationStatus"];
+type FilterStatus = "all" | BusinessStatus;
 
 export default function BusinessesPage() {
   const searchParams = useSearchParams();
@@ -19,13 +20,12 @@ export default function BusinessesPage() {
   const [searchQuery, setSearchQuery] = useState(initialSearch);
   const [statusFilter, setStatusFilter] = useState<FilterStatus>("all");
 
+  const { data: businesses = [], isLoading } = useGetAllBusinesses();
+
   const filteredBusinesses = useMemo(() => {
-    return businesses.filter((business) => {
+    return businesses.filter((business: BusinessType) => {
       // Filter by status
-      if (
-        statusFilter !== "all" &&
-        business.verificationStatus !== statusFilter
-      ) {
+      if (statusFilter !== "all" && business.status !== statusFilter) {
         return false;
       }
 
@@ -36,13 +36,13 @@ export default function BusinessesPage() {
           business.name.toLowerCase().includes(query) ||
           business.industry.toLowerCase().includes(query) ||
           business.location.toLowerCase().includes(query) ||
-          business.description.toLowerCase().includes(query)
+          (business.description || "").toLowerCase().includes(query)
         );
       }
 
       return true;
     });
-  }, [searchQuery, statusFilter]);
+  }, [businesses, searchQuery, statusFilter]);
 
   const filterButtons: { label: string; value: FilterStatus; count: number }[] =
     [
@@ -50,22 +50,31 @@ export default function BusinessesPage() {
       {
         label: "VERIFIED",
         value: "verified",
-        count: businesses.filter((b) => b.verificationStatus === "verified")
+        count: businesses.filter((b: BusinessType) => b.status === "verified")
           .length,
       },
       {
         label: "PENDING",
         value: "pending",
-        count: businesses.filter((b) => b.verificationStatus === "pending")
+        count: businesses.filter((b: BusinessType) => b.status === "pending")
           .length,
       },
       {
-        label: "UNVERIFIED",
-        value: "unverified",
-        count: businesses.filter((b) => b.verificationStatus === "unverified")
+        label: "REJECTED",
+        value: "rejected",
+        count: businesses.filter((b: BusinessType) => b.status === "rejected")
           .length,
       },
     ];
+
+  if (isLoading) {
+    return (
+      <div className="py-20 flex flex-col items-center justify-center">
+        <Loader2 className="h-10 w-10 text-emerald-500 animate-spin mb-4" />
+        <p className="text-muted-foreground">Loading businesses...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="py-8">
@@ -137,8 +146,8 @@ export default function BusinessesPage() {
 
         {/* Business Grid */}
         {filteredBusinesses.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredBusinesses.map((business, index) => (
+          <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-6">
+            {filteredBusinesses.map((business: BusinessType, index: number) => (
               <BusinessCard
                 key={business.id}
                 business={business}

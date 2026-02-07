@@ -1,38 +1,10 @@
-import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 export async function middleware(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({
-    request,
-  });
+  const response = NextResponse.next({ request });
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value),
-          );
-          supabaseResponse = NextResponse.next({
-            request,
-          });
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options),
-          );
-        },
-      },
-    },
-  );
-
-  // Refresh session if expired
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Get the access token from cookies
+  const accessToken = request.cookies.get("session_access_token")?.value;
 
   // Protected routes that require authentication
   const protectedRoutes = [
@@ -51,23 +23,16 @@ export async function middleware(request: NextRequest) {
   );
 
   // Redirect to login if accessing protected route without auth
-  if (isProtectedRoute && !user) {
+  if (isProtectedRoute && !accessToken) {
     const redirectUrl = new URL("/login", request.url);
     redirectUrl.searchParams.set("redirect", request.nextUrl.pathname);
     return NextResponse.redirect(redirectUrl);
   }
 
-  // Admin route protection (check role)
-  if (isAdminRoute && user) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single();
-
-    if (profile?.role !== "admin") {
-      return NextResponse.redirect(new URL("/", request.url));
-    }
+  // Admin route protection - we'll rely on the frontend to check role
+  // The backend will also enforce this via API permissions
+  if (isAdminRoute && !accessToken) {
+    return NextResponse.redirect(new URL("/login", request.url));
   }
 
   // Redirect authenticated users away from auth pages
@@ -76,11 +41,11 @@ export async function middleware(request: NextRequest) {
     request.nextUrl.pathname.startsWith(route),
   );
 
-  if (isAuthRoute && user) {
+  if (isAuthRoute && accessToken) {
     return NextResponse.redirect(new URL("/", request.url));
   }
 
-  return supabaseResponse;
+  return response;
 }
 
 export const config = {

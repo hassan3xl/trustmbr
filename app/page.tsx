@@ -16,15 +16,14 @@ import {
 import { BusinessCard } from "@/components/business-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { businesses } from "@/lib/data";
+import { useGetAllBusinesses } from "@/lib/hooks/business.hook";
 
 export default function HomePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const router = useRouter();
-
-  const featuredBusinesses = businesses
-    .filter((b) => b.verificationStatus === "verified")
-    .slice(0, 3);
+  const { data: businesses, isLoading: isBusinessesLoading } =
+    useGetAllBusinesses();
+  console.log(businesses);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,7 +31,9 @@ export default function HomePage() {
       router.push(`/businesses?search=${encodeURIComponent(searchQuery)}`);
     }
   };
-
+  if (isBusinessesLoading) {
+    return <div>Loading...</div>;
+  }
   return (
     <div>
       {/* Hero Section */}
@@ -126,13 +127,9 @@ export default function HomePage() {
             </Button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {featuredBusinesses.map((business, index) => (
-              <BusinessCard
-                key={business.id}
-                business={business}
-                index={index}
-              />
+          <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-6">
+            {businesses?.map((business) => (
+              <BusinessCard key={business.id} business={business} />
             ))}
           </div>
 

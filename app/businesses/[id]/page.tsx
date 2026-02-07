@@ -1,5 +1,7 @@
-import { notFound } from "next/navigation";
+"use client";
+
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import {
   ArrowLeft,
   CheckCircle2,
@@ -16,22 +18,18 @@ import {
   FileText,
   Shield,
   Star,
+  Loader2,
 } from "lucide-react";
 
 import { StatsCard } from "@/components/stats-card";
-import { IncomeChart } from "@/components/income-chart";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
-import { getBusinessById, formatCurrency, Business } from "@/lib/data";
+import { BusinessType, BusinessStatus } from "@/lib/types/business.types";
+import { useBusiness } from "@/lib/hooks/business.hook";
 
-interface BusinessDetailsPageProps {
-  params: Promise<{ id: string }>;
-}
-
-function getStatusConfig(status: Business["verificationStatus"]) {
+function getStatusConfig(status: BusinessStatus) {
   switch (status) {
     case "verified":
       return {
@@ -47,12 +45,19 @@ function getStatusConfig(status: Business["verificationStatus"]) {
         className: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",
         description: "Verification is in progress",
       };
-    case "unverified":
+    case "rejected":
       return {
-        label: "UNVERIFIED",
+        label: "REJECTED",
         icon: AlertCircle,
         className: "bg-red-500/10 text-red-500 border-red-500/20",
-        description: "This business has not been verified",
+        description: "This business verification was rejected",
+      };
+    default:
+      return {
+        label: "UNKNOWN",
+        icon: AlertCircle,
+        className: "bg-gray-500/10 text-gray-500 border-gray-500/20",
+        description: "Status unknown",
       };
   }
 }
@@ -63,17 +68,49 @@ function getTrustScoreColor(score: number) {
   return "text-red-500";
 }
 
-export default async function BusinessDetailsPage({
-  params,
-}: BusinessDetailsPageProps) {
-  const { id } = await params;
-  const business = getBusinessById(id);
+function formatCurrency(amount: number): string {
+  return new Intl.NumberFormat("en-NG", {
+    style: "currency",
+    currency: "NGN",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount);
+}
 
-  if (!business) {
-    notFound();
+export default function BusinessDetailsPage() {
+  const params = useParams();
+  const id = params.id as string;
+
+  const { data: business, isLoading, error } = useBusiness(id);
+
+  if (isLoading) {
+    return (
+      <div className="py-20 flex flex-col items-center justify-center">
+        <Loader2 className="h-10 w-10 text-emerald-500 animate-spin mb-4" />
+        <p className="text-muted-foreground">Loading business details...</p>
+      </div>
+    );
   }
 
-  const statusConfig = getStatusConfig(business.verificationStatus);
+  if (error || !business) {
+    return (
+      <div className="py-20 flex flex-col items-center justify-center">
+        <AlertCircle className="h-10 w-10 text-red-500 mb-4" />
+        <h2 className="text-xl font-semibold mb-2">Business Not Found</h2>
+        <p className="text-muted-foreground mb-6">
+          The business you're looking for doesn't exist or has been removed.
+        </p>
+        <Link href="/businesses">
+          <Button variant="outline">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Businesses
+          </Button>
+        </Link>
+      </div>
+    );
+  }
+
+  const statusConfig = getStatusConfig(business.status);
   const StatusIcon = statusConfig.icon;
 
   return (
@@ -129,14 +166,6 @@ export default async function BusinessDetailsPage({
                         <Building2 className="h-4 w-4 text-muted-foreground" />
                         <span>{business.industry}</span>
                       </div>
-                      <div className="flex items-center gap-2 text-sm">
-                        <Calendar className="h-4 w-4 text-muted-foreground" />
-                        <span>{business.yearsActive} years active</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm">
-                        <Users className="h-4 w-4 text-muted-foreground" />
-                        <span>{business.employeeCount} employees</span>
-                      </div>
                     </div>
                   </div>
                 </div>
@@ -154,10 +183,10 @@ export default async function BusinessDetailsPage({
                 </p>
                 <p
                   className={`text-6xl font-bold ${getTrustScoreColor(
-                    business.trustScore,
+                    business.trust_score,
                   )}`}
                 >
-                  {business.trustScore}
+                  {business.trust_score}
                 </p>
                 <p className="text-sm text-muted-foreground mt-2">out of 100</p>
                 <div className="flex items-center gap-1 mt-4">
@@ -165,7 +194,7 @@ export default async function BusinessDetailsPage({
                     <Star
                       key={star}
                       className={`h-5 w-5 ${
-                        star <= Math.round(business.trustScore / 20)
+                        star <= Math.round(business.trust_score / 20)
                           ? "text-emerald-500 fill-emerald-500"
                           : "text-muted-foreground/30"
                       }`}
@@ -178,28 +207,13 @@ export default async function BusinessDetailsPage({
         </div>
 
         {/* Stats Row */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
           <StatsCard
-            title="Monthly Income"
-            value={formatCurrency(business.monthlyIncome)}
-            subtitle="Reported revenue"
-            icon={TrendingUp}
+            title="Trust Score"
+            value={`${business.trust_score}/100`}
+            subtitle="Overall rating"
+            icon={Shield}
             variant="success"
-            trend={{ value: 12, isPositive: true }}
-          />
-          <StatsCard
-            title="Years Active"
-            value={business.yearsActive}
-            subtitle="In operation"
-            icon={Calendar}
-            variant="default"
-          />
-          <StatsCard
-            title="Employees"
-            value={business.employeeCount}
-            subtitle="Team members"
-            icon={Users}
-            variant="default"
           />
           <StatsCard
             title="Industry"
@@ -207,14 +221,12 @@ export default async function BusinessDetailsPage({
             icon={Building2}
             variant="default"
           />
-        </div>
-
-        {/* Income Chart */}
-        <div
-          className="mb-8 animate-slide-up"
-          style={{ animationDelay: "200ms", animationFillMode: "forwards" }}
-        >
-          <IncomeChart incomeHistory={business.incomeHistory} />
+          <StatsCard
+            title="Status"
+            value={statusConfig.label}
+            icon={statusConfig.icon}
+            variant={business.status === "verified" ? "success" : "default"}
+          />
         </div>
 
         {/* Details Grid */}
@@ -241,13 +253,13 @@ export default async function BusinessDetailsPage({
                   </p>
                 </div>
 
-                {business.verifiedAt && (
+                {business.verified_at && (
                   <div className="flex items-center justify-between py-3 border-b border-border/50">
                     <span className="text-sm text-muted-foreground">
                       Verified On
                     </span>
                     <span className="text-sm font-medium">
-                      {new Date(business.verifiedAt).toLocaleDateString(
+                      {new Date(business.verified_at).toLocaleDateString(
                         "en-NG",
                         {
                           year: "numeric",
@@ -264,7 +276,7 @@ export default async function BusinessDetailsPage({
                     Registration Number
                   </span>
                   <span className="text-sm font-medium font-mono">
-                    {business.registrationNumber}
+                    {business.registration_number}
                   </span>
                 </div>
 
@@ -274,10 +286,10 @@ export default async function BusinessDetailsPage({
                   </span>
                   <span
                     className={`text-sm font-bold ${getTrustScoreColor(
-                      business.trustScore,
+                      business.trust_score,
                     )}`}
                   >
-                    {business.trustScore}/100
+                    {business.trust_score}/100
                   </span>
                 </div>
               </div>
@@ -330,24 +342,26 @@ export default async function BusinessDetailsPage({
                   </div>
                 </div>
 
-                <div className="flex items-center gap-4 p-4 rounded-xl bg-background/50">
-                  <div className="p-3 rounded-lg bg-emerald-500/10">
-                    <Globe className="h-5 w-5 text-emerald-500" />
+                {business.website && (
+                  <div className="flex items-center gap-4 p-4 rounded-xl bg-background/50">
+                    <div className="p-3 rounded-lg bg-emerald-500/10">
+                      <Globe className="h-5 w-5 text-emerald-500" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                        Website
+                      </p>
+                      <a
+                        href={business.website}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-emerald-400 hover:underline"
+                      >
+                        {business.website}
+                      </a>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground uppercase tracking-wide">
-                      Website
-                    </p>
-                    <a
-                      href={business.website}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm text-emerald-400 hover:underline"
-                    >
-                      {business.website}
-                    </a>
-                  </div>
-                </div>
+                )}
               </div>
             </CardContent>
           </Card>

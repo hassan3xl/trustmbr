@@ -1,6 +1,6 @@
 "use client";
 
-import { Navbar } from "@/components/navbar";
+import { Navbar } from "@/components/nav/navbar";
 import { Footer } from "@/components/footer";
 import { Skeleton } from "@/components/ui/skeleton";
 

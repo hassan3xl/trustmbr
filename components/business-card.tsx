@@ -10,14 +10,14 @@ import {
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Business, formatCurrency } from "@/lib/data";
+import { BusinessType } from "@/lib/types/business.types";
 
 interface BusinessCardProps {
-  business: Business;
+  business: BusinessType;
   index?: number; // For staggered animations
 }
 
-function getStatusConfig(status: Business["verificationStatus"]) {
+function getStatusConfig(status: BusinessType["status"]) {
   switch (status) {
     case "verified":
       return {
@@ -31,9 +31,9 @@ function getStatusConfig(status: Business["verificationStatus"]) {
         icon: Clock,
         className: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",
       };
-    case "unverified":
+    case "rejected":
       return {
-        label: "UNVERIFIED",
+        label: "REJECTED",
         icon: AlertCircle,
         className: "bg-red-500/10 text-red-500 border-red-500/20",
       };
@@ -41,7 +41,7 @@ function getStatusConfig(status: Business["verificationStatus"]) {
 }
 
 export function BusinessCard({ business, index = 0 }: BusinessCardProps) {
-  const statusConfig = getStatusConfig(business.verificationStatus);
+  const statusConfig = getStatusConfig(business.status);
   const StatusIcon = statusConfig.icon;
   const animationDelay = `${index * 100}ms`;
 
@@ -99,7 +99,6 @@ export function BusinessCard({ business, index = 0 }: BusinessCardProps) {
             <div className="flex items-center gap-1.5">
               <TrendingUp className="h-4 w-4 text-emerald-500" />
               <span className="text-sm font-semibold text-emerald-400 tracking-wide">
-                {formatCurrency(business.monthlyIncome)}
                 <span className="text-xs text-muted-foreground font-normal">
                   /mo
                 </span>

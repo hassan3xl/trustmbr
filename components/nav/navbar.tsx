@@ -1,15 +1,25 @@
 "use client";
 
 import Link from "next/link";
-import { Shield, Menu, X, LogOut, User } from "lucide-react";
+import { Shield, Menu, X, LogOut } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/lib/context/auth-context";
+import { useAuth } from "@/lib/contexts/AuthContext";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { resetAuthCookies } from "@/lib/actions/auth.actions";
+import { useRouter } from "next/navigation";
 
 export function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { user, profile, isLoading, signOut } = useAuth();
+  const { user, loading, logout } = useAuth();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    await resetAuthCookies();
+    logout();
+    router.push("/");
+    router.refresh();
+  };
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -40,7 +50,7 @@ export function Navbar() {
             >
               BUSINESSES
             </Link>
-            {profile?.role === "admin" && (
+            {user?.role === "admin" && (
               <Link
                 href="/admin"
                 className="text-sm tracking-wide text-muted-foreground hover:text-foreground transition-colors"
@@ -52,29 +62,32 @@ export function Navbar() {
 
           {/* CTA Buttons */}
           <div className="hidden md:flex items-center gap-3">
-            {isLoading ? (
+            {loading ? (
               <div className="h-9 w-24 bg-muted/20 rounded-lg animate-pulse" />
             ) : user ? (
               <>
-                <Link href="/businesses/register">
+                <Link href="/dashboard">
                   <Button
                     size="sm"
                     className="bg-emerald-600 hover:bg-emerald-700 tracking-wide"
                   >
-                    REGISTER BUSINESS
+                    DASHBOARD
                   </Button>
                 </Link>
                 <div className="flex items-center gap-2 pl-2 border-l border-border">
-                  <Avatar className="h-8 w-8 border border-border">
+                  <Avatar
+                    onClick={() => router.push("/profile")}
+                    className="h-8 w-8 border border-border"
+                  >
                     <AvatarFallback className="bg-emerald-500/20 text-emerald-500 text-xs">
-                      {profile?.full_name?.slice(0, 2).toUpperCase() ||
-                        user.email?.slice(0, 2).toUpperCase()}
+                      {user?.full_name?.slice(0, 2).toUpperCase() ||
+                        user?.email?.slice(0, 2).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={signOut}
+                    onClick={handleLogout}
                     className="tracking-wide"
                   >
                     <LogOut className="h-4 w-4 mr-1" />
@@ -129,7 +142,7 @@ export function Navbar() {
             >
               BUSINESSES
             </Link>
-            {profile?.role === "admin" && (
+            {user?.role === "admin" && (
               <Link
                 href="/admin"
                 className="block text-sm tracking-wide text-muted-foreground hover:text-foreground"
@@ -143,12 +156,12 @@ export function Navbar() {
                   <div className="flex items-center gap-2 mb-3 pb-3 border-b border-border/40">
                     <Avatar className="h-8 w-8 border border-border">
                       <AvatarFallback className="bg-emerald-500/20 text-emerald-500 text-xs">
-                        {profile?.full_name?.slice(0, 2).toUpperCase() ||
-                          user.email?.slice(0, 2).toUpperCase()}
+                        {user?.full_name?.slice(0, 2).toUpperCase() ||
+                          user?.email?.slice(0, 2).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <span className="text-sm">
-                      {profile?.full_name || user.email}
+                      {user?.full_name || user?.email}
                     </span>
                   </div>
                   <Link href="/businesses/register" className="block">
@@ -162,7 +175,7 @@ export function Navbar() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={signOut}
+                    onClick={handleLogout}
                     className="w-full tracking-wide"
                   >
                     <LogOut className="h-4 w-4 mr-2" />

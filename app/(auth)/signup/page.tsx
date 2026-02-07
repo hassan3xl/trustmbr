@@ -7,17 +7,19 @@ import { Shield, Mail, Lock, User, ArrowRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { signUp } from "@/lib/actions/auth";
+import { authApi } from "@/lib/api/auth.api";
+import { handleLogin } from "@/lib/actions/auth.actions";
+import { useAuth } from "@/lib/contexts/AuthContext";
 
 export default function SignupPage() {
   const router = useRouter();
+  const { refreshUser } = useAuth();
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -36,43 +38,37 @@ export default function SignupPage() {
 
     setIsLoading(true);
 
-    const result = await signUp(email, password, fullName);
+    try {
+      const result = await authApi.signUp({
+        email,
+        password,
+        full_name: fullName,
+      });
 
-    if (!result.success) {
-      setError(result.error || "Failed to create account");
+      // If signup returns tokens directly, log the user in
+      if (result.access && result.refresh) {
+        await handleLogin(
+          {
+            id: result.user?.id || result.id,
+            name: result.user?.full_name || fullName,
+            email: result.user?.email || email,
+          },
+          result.access,
+          result.refresh,
+        );
+
+        refreshUser();
+        router.push("/");
+        router.refresh();
+      } else {
+        // Otherwise, redirect to login
+        router.push("/login?registered=true");
+      }
+    } catch (err: any) {
+      setError(err?.data?.detail || err?.message || "Failed to create account");
       setIsLoading(false);
-      return;
     }
-
-    setSuccess(true);
-    setIsLoading(false);
   };
-
-  if (success) {
-    return (
-      <div className="relative w-full max-w-md">
-        <Card className="w-full border-border/50 bg-card/50 backdrop-blur animate-scale-in">
-          <CardContent className="pt-8 pb-8 text-center">
-            <div className="w-16 h-16 rounded-full bg-emerald-500/20 flex items-center justify-center mx-auto mb-4">
-              <Shield className="h-8 w-8 text-emerald-500" />
-            </div>
-            <h2 className="text-xl font-bold tracking-wide mb-2">
-              CHECK YOUR EMAIL
-            </h2>
-            <p className="text-muted-foreground mb-6">
-              We&apos;ve sent a confirmation link to{" "}
-              <span className="text-emerald-400">{email}</span>
-            </p>
-            <Link href="/login">
-              <Button className="bg-emerald-600 hover:bg-emerald-700 tracking-wide">
-                GO TO LOGIN
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
   return (
     <div className="relative w-full max-w-md">

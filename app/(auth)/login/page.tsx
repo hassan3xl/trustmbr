@@ -7,10 +7,13 @@ import { Shield, Mail, Lock, ArrowRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { signIn } from "@/lib/actions/auth";
+import { authApi } from "@/lib/api/auth.api";
+import { handleLogin } from "@/lib/actions/auth.actions";
+import { useAuth } from "@/lib/contexts/AuthContext";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { refreshUser } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -22,16 +25,27 @@ export default function LoginPage() {
     setError("");
     setIsLoading(true);
 
-    const result = await signIn(email, password);
+    try {
+      const result = await authApi.signIn({ email, password });
 
-    if (!result.success) {
-      setError(result.error || "Failed to sign in");
+      // Store tokens and user in cookies
+      await handleLogin(
+        {
+          id: result.user?.id || result.id,
+          name: result.user?.full_name || result.full_name || "",
+          email: result.user?.email || email,
+        },
+        result.access,
+        result.refresh,
+      );
+
+      refreshUser();
+      router.push("/");
+      router.refresh();
+    } catch (err: any) {
+      setError(err?.data?.detail || err?.message || "Failed to sign in");
       setIsLoading(false);
-      return;
     }
-
-    router.push("/");
-    router.refresh();
   };
 
   return (

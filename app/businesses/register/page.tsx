@@ -19,7 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { createBusiness } from "@/lib/actions/businesses";
+import { useCreateBusiness } from "@/lib/hooks/business.hook";
 
 const steps = [
   { id: 1, name: "BUSINESS INFO", icon: Building2 },
@@ -44,8 +44,6 @@ interface FormData {
 export default function RegisterBusinessPage() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState("");
   const [formData, setFormData] = useState<FormData>({
     businessName: "",
     industry: "",
@@ -59,6 +57,8 @@ export default function RegisterBusinessPage() {
     estimatedMonthlyIncome: "",
   });
 
+  const createBusinessMutation = useCreateBusiness();
+
   const updateFormData = (field: keyof FormData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
@@ -67,29 +67,24 @@ export default function RegisterBusinessPage() {
   const prevStep = () => setCurrentStep((prev) => Math.max(prev - 1, 1));
 
   const handleSubmit = async () => {
-    setIsSubmitting(true);
-    setError("");
-
-    const result = await createBusiness({
-      name: formData.businessName,
-      description: formData.description,
-      industry: formData.industry,
-      location: formData.location,
-      address: formData.address,
-      email: formData.email,
-      phone: formData.phone,
-      website: formData.website || undefined,
-      registration_number: formData.registrationNumber,
-    });
-
-    setIsSubmitting(false);
-
-    if (!result.success) {
-      setError(result.error || "Failed to register business");
-      return;
-    }
-
-    router.push("/businesses");
+    createBusinessMutation.mutate(
+      {
+        name: formData.businessName,
+        description: formData.description,
+        industry: formData.industry,
+        location: formData.location,
+        address: formData.address,
+        email: formData.email,
+        phone: formData.phone,
+        website: formData.website || undefined,
+        registration_number: formData.registrationNumber,
+      },
+      {
+        onSuccess: () => {
+          router.push("/businesses");
+        },
+      },
+    );
   };
 
   return (
@@ -113,9 +108,10 @@ export default function RegisterBusinessPage() {
         </div>
 
         {/* Error Display */}
-        {error && (
+        {createBusinessMutation.isError && (
           <div className="mb-6 p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm animate-fade-in">
-            {error}
+            {(createBusinessMutation.error as any)?.message ||
+              "Failed to register business"}
           </div>
         )}
 
@@ -446,10 +442,10 @@ export default function RegisterBusinessPage() {
               ) : (
                 <Button
                   onClick={handleSubmit}
-                  disabled={isSubmitting}
+                  disabled={createBusinessMutation.isPending}
                   className="bg-emerald-600 hover:bg-emerald-700 tracking-wide"
                 >
-                  {isSubmitting ? (
+                  {createBusinessMutation.isPending ? (
                     <>
                       <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
                       SUBMITTING...

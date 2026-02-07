@@ -5,7 +5,6 @@ import Link from "next/link";
 import {
   Shield,
   Building2,
-  Users,
   TrendingUp,
   CheckCircle,
   Clock,
@@ -13,6 +12,7 @@ import {
   Search,
   Eye,
   MoreVertical,
+  Loader2,
 } from "lucide-react";
 
 import { StatsCard } from "@/components/stats-card";
@@ -29,9 +29,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { businesses, Business, formatCurrency } from "@/lib/data";
+import { BusinessType, BusinessStatus } from "@/lib/types/business.types";
+import { useGetAllBusinesses } from "@/lib/hooks/business.hook";
 
-function getStatusBadge(status: Business["verificationStatus"]) {
+function getStatusBadge(status: BusinessStatus) {
   switch (status) {
     case "verified":
       return (
@@ -47,11 +48,17 @@ function getStatusBadge(status: Business["verificationStatus"]) {
           PENDING
         </Badge>
       );
-    case "unverified":
+    case "rejected":
       return (
         <Badge className="bg-red-500/10 text-red-500 border-red-500/20 hover:bg-red-500/20">
           <AlertCircle className="h-3 w-3 mr-1" />
-          UNVERIFIED
+          REJECTED
+        </Badge>
+      );
+    default:
+      return (
+        <Badge className="bg-gray-500/10 text-gray-500 border-gray-500/20">
+          UNKNOWN
         </Badge>
       );
   }
@@ -59,20 +66,29 @@ function getStatusBadge(status: Business["verificationStatus"]) {
 
 export default function AdminDashboardPage() {
   const [searchQuery, setSearchQuery] = useState("");
+  const { data: businesses = [], isLoading } = useGetAllBusinesses();
 
   const verifiedCount = businesses.filter(
-    (b) => b.verificationStatus === "verified",
+    (b: BusinessType) => b.status === "verified",
   ).length;
   const pendingCount = businesses.filter(
-    (b) => b.verificationStatus === "pending",
+    (b: BusinessType) => b.status === "pending",
   ).length;
-  const totalRevenue = businesses.reduce((sum, b) => sum + b.monthlyIncome, 0);
 
   const filteredBusinesses = businesses.filter(
-    (b) =>
+    (b: BusinessType) =>
       b.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       b.industry.toLowerCase().includes(searchQuery.toLowerCase()),
   );
+
+  if (isLoading) {
+    return (
+      <div className="py-20 flex flex-col items-center justify-center">
+        <Loader2 className="h-10 w-10 text-emerald-500 animate-spin mb-4" />
+        <p className="text-muted-foreground">Loading admin dashboard...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="py-8">
@@ -91,7 +107,7 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
           <div
             className="animate-slide-up opacity-0"
             style={{ animationDelay: "0ms", animationFillMode: "forwards" }}
@@ -126,19 +142,6 @@ export default function AdminDashboardPage() {
               subtitle="Awaiting verification"
               icon={Clock}
               variant="warning"
-            />
-          </div>
-          <div
-            className="animate-slide-up opacity-0"
-            style={{ animationDelay: "300ms", animationFillMode: "forwards" }}
-          >
-            <StatsCard
-              title="Total Revenue"
-              value={formatCurrency(totalRevenue)}
-              subtitle="Monthly combined"
-              icon={TrendingUp}
-              variant="success"
-              trend={{ value: 8, isPositive: true }}
             />
           </div>
         </div>
@@ -180,9 +183,6 @@ export default function AdminDashboardPage() {
                       STATUS
                     </TableHead>
                     <TableHead className="text-xs tracking-wide">
-                      MONTHLY INCOME
-                    </TableHead>
-                    <TableHead className="text-xs tracking-wide">
                       TRUST SCORE
                     </TableHead>
                     <TableHead className="text-xs tracking-wide text-right">
@@ -191,84 +191,79 @@ export default function AdminDashboardPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredBusinesses.map((business, index) => (
-                    <TableRow
-                      key={business.id}
-                      className="border-border/50 hover:bg-emerald-500/5 animate-fade-in opacity-0"
-                      style={{
-                        animationDelay: `${index * 50}ms`,
-                        animationFillMode: "forwards",
-                      }}
-                    >
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <Avatar className="h-8 w-8 border border-border">
-                            <AvatarFallback className="bg-gradient-to-br from-emerald-500 to-emerald-700 text-white text-xs">
-                              {business.name.slice(0, 2).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="font-medium text-sm">
-                              {business.name}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {business.location}
-                            </p>
+                  {filteredBusinesses.map(
+                    (business: BusinessType, index: number) => (
+                      <TableRow
+                        key={business.id}
+                        className="border-border/50 hover:bg-emerald-500/5 animate-fade-in opacity-0"
+                        style={{
+                          animationDelay: `${index * 50}ms`,
+                          animationFillMode: "forwards",
+                        }}
+                      >
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-8 w-8 border border-border">
+                              <AvatarFallback className="bg-gradient-to-br from-emerald-500 to-emerald-700 text-white text-xs">
+                                {business.name.slice(0, 2).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="font-medium text-sm">
+                                {business.name}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {business.location}
+                              </p>
+                            </div>
                           </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-sm">{business.industry}</span>
-                      </TableCell>
-                      <TableCell>
-                        {getStatusBadge(business.verificationStatus)}
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-sm font-medium text-emerald-400">
-                          {formatCurrency(business.monthlyIncome)}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <div className="w-16 h-2 rounded-full bg-muted overflow-hidden">
-                            <div
-                              className={`h-full rounded-full ${
-                                business.trustScore >= 80
-                                  ? "bg-emerald-500"
-                                  : business.trustScore >= 60
-                                    ? "bg-yellow-500"
-                                    : "bg-red-500"
-                              }`}
-                              style={{ width: `${business.trustScore}%` }}
-                            />
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm">{business.industry}</span>
+                        </TableCell>
+                        <TableCell>{getStatusBadge(business.status)}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <div className="w-16 h-2 rounded-full bg-muted overflow-hidden">
+                              <div
+                                className={`h-full rounded-full ${
+                                  business.trust_score >= 80
+                                    ? "bg-emerald-500"
+                                    : business.trust_score >= 60
+                                      ? "bg-yellow-500"
+                                      : "bg-red-500"
+                                }`}
+                                style={{ width: `${business.trust_score}%` }}
+                              />
+                            </div>
+                            <span className="text-xs text-muted-foreground">
+                              {business.trust_score}
+                            </span>
                           </div>
-                          <span className="text-xs text-muted-foreground">
-                            {business.trustScore}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Link href={`/businesses/${business.id}`}>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <Link href={`/businesses/${business.id}`}>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            </Link>
                             <Button
                               variant="ghost"
                               size="sm"
                               className="h-8 w-8 p-0"
                             >
-                              <Eye className="h-4 w-4" />
+                              <MoreVertical className="h-4 w-4" />
                             </Button>
-                          </Link>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 w-8 p-0"
-                          >
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ),
+                  )}
                 </TableBody>
               </Table>
             </div>
