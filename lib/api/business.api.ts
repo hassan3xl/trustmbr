@@ -20,19 +20,19 @@ export const businessApi = {
 
   // Get user's own businesses
   getMyBusinesses: async (): Promise<BusinessType[]> => {
-    const res = await apiService.get("/businesses/my/");
+    const res = await apiService.get("/user/businesses/");
     return res;
   },
 
   // Get single business by ID
   getBusinessById: async (id: string): Promise<BusinessType> => {
-    const res = await apiService.get(`/businesses/${id}/`);
+    const res = await apiService.get(`/user/businesses/${id}/`);
     return res;
   },
 
   // Create new business
   createBusiness: async (business: BusinessInsert): Promise<BusinessType> => {
-    const res = await apiService.post("/businesses/", business);
+    const res = await apiService.post("/user/businesses/", business);
     return res;
   },
 
@@ -41,13 +41,13 @@ export const businessApi = {
     id: string,
     updates: BusinessUpdate,
   ): Promise<BusinessType> => {
-    const res = await apiService.patch(`/businesses/${id}/`, updates);
+    const res = await apiService.patch(`/user/businesses/${id}/`, updates);
     return res;
   },
 
   // Delete business
   deleteBusiness: async (id: string): Promise<void> => {
-    await apiService.delete(`/businesses/${id}/`);
+    await apiService.delete(`/user/businesses/${id}/`);
   },
 
   // Update business status (admin only)

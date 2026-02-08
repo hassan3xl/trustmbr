@@ -37,8 +37,8 @@ interface FormData {
   email: string;
   phone: string;
   website: string;
-  registrationNumber: string;
-  estimatedMonthlyIncome: string;
+  registration_number: string;
+  estimated_monthly_income: string;
 }
 
 export default function RegisterBusinessPage() {
@@ -53,8 +53,8 @@ export default function RegisterBusinessPage() {
     email: "",
     phone: "",
     website: "",
-    registrationNumber: "",
-    estimatedMonthlyIncome: "",
+    registration_number: "",
+    estimated_monthly_income: "",
   });
 
   const createBusinessMutation = useCreateBusiness();
@@ -77,11 +77,11 @@ export default function RegisterBusinessPage() {
         email: formData.email,
         phone: formData.phone,
         website: formData.website || undefined,
-        registration_number: formData.registrationNumber,
+        registration_number: formData.registration_number,
       },
       {
         onSuccess: () => {
-          router.push("/businesses");
+          router.push("/my-businesses");
         },
       },
     );
@@ -291,9 +291,9 @@ export default function RegisterBusinessPage() {
                   </label>
                   <Input
                     placeholder="RC-XXXX-XX-XXXX"
-                    value={formData.registrationNumber}
+                    value={formData.registration_number}
                     onChange={(e) =>
-                      updateFormData("registrationNumber", e.target.value)
+                      updateFormData("registration_number", e.target.value)
                     }
                     className="h-12 bg-background/50"
                   />
@@ -305,9 +305,9 @@ export default function RegisterBusinessPage() {
                   <Input
                     type="number"
                     placeholder="e.g., 1000000"
-                    value={formData.estimatedMonthlyIncome}
+                    value={formData.estimated_monthly_income}
                     onChange={(e) =>
-                      updateFormData("estimatedMonthlyIncome", e.target.value)
+                      updateFormData("estimated_monthly_income", e.target.value)
                     }
                     className="h-12 bg-background/50"
                   />
@@ -397,7 +397,7 @@ export default function RegisterBusinessPage() {
                     <CardContent className="flex items-center justify-between">
                       <div>
                         <p className="font-mono text-sm">
-                          {formData.registrationNumber || "RC-XXXX-XX-XXXX"}
+                          {formData.registration_number || "RC-XXXX-XX-XXXX"}
                         </p>
                         <p className="text-xs text-muted-foreground">
                           Registration Number
@@ -407,7 +407,7 @@ export default function RegisterBusinessPage() {
                         <p className="font-bold text-emerald-400">
                           ₦
                           {parseInt(
-                            formData.estimatedMonthlyIncome || "0",
+                            formData.estimated_monthly_income || "0",
                           ).toLocaleString()}
                         </p>
                         <p className="text-xs text-muted-foreground">

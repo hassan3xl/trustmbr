@@ -84,15 +84,6 @@ export function Navbar() {
                         user?.email?.slice(0, 2).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleLogout}
-                    className="tracking-wide"
-                  >
-                    <LogOut className="h-4 w-4 mr-1" />
-                    LOGOUT
-                  </Button>
                 </div>
               </>
             ) : (
